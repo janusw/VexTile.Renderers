@@ -2,6 +2,7 @@ using SQLite;
 using VexTile.Common.Enums;
 using VexTile.Data.Sources;
 using VexTile.Renderer.Mvt.AliFlux;
+using VexTile.Renderer.Mvt.AliFlux.Drawing;
 using VexTile.Renderer.Mvt.AliFlux.Sources;
 
 namespace VexTile.Renderers.Mvt.AliFlux.Tests;
@@ -133,5 +134,39 @@ public class RenderTest
         }
 
         await File.WriteAllBytesAsync("wateronly.png", tile);
+    }
+
+    [Fact]
+    public async Task StyleTest_BaseMap_de()
+    {
+        // load style
+        string url = "https://sgx.geodatenzentrum.de/gdz_basemapde_vektor/styles/bm_web_col.json";
+        string json = await new HttpClient().GetStringAsync(url);
+        VectorStyle style = new VectorStyle(VectorStyleKind.Custom, customStyle: json);
+        Assert.True(style != null);
+
+        // check layers
+        Assert.Equal(544, style.Layers.Count);
+        foreach (var l in style.Layers)
+        {
+            if (l.Filter.Count() > 0)
+                Console.WriteLine($"{l.Index,3} {l.ID,-70} {l.SourceLayer,-25} {l.Type,-15} {l.Filter.Count()} {l.Filter[0]}");
+            else
+                Console.WriteLine($"{l.Index,3} {l.ID,-70} {l.SourceLayer,-25} {l.Type,-15} {l.Filter.Count()}");
+        }
+
+        // check source
+        Assert.Single(style.Sources);
+        Source src = style.Sources.First().Value;
+        Assert.Equal("smarttiles_de", src.Name);
+        Assert.Equal("vector", src.Type);
+        Console.WriteLine(src.URL);
+        Assert.True(src.Provider != null);    // this fails!
+
+        // test rendering
+        var canvas = new SkiaCanvas();
+        await TileRendererFactory.RenderAsync(style, canvas, new TileInfo(0));
+        var tile = canvas.ToPngByteArray();
+        await File.WriteAllBytesAsync("basemap.png", tile);
     }
 }
