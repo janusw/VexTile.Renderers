@@ -402,3 +402,6 @@ FodyWeavers.xsd
 .idea/
 /nugets
 *.lock.json
+
+# MacOS
+.DS_Store
